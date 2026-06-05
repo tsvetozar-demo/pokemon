@@ -19,9 +19,9 @@ const PokemonSchema = new Schema<IPokemon, PokemonModel>({
 // Static method
 PokemonSchema.static("fetchByIds",
     async function (ids: number[]): Promise<{ pokemons: IPokemon[], missing: any[] }> {
-        console.log('query', { id: { $in: ids } })
+        
         const pokemons = await this.find({ id: { $in: ids } }).lean();
-        console.log('pokemons', pokemons)
+        
         //const pokemons = pokemonData.pokemon as unknown as IPokemon[]; // BYPASS DB and use local JSON dump
         const missing: any = []; // returns IDs of pokemons which are missing in database
         
