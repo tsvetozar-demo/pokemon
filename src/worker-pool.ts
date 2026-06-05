@@ -11,6 +11,12 @@ type Task = {
     reject: (err: any) => void;
 };
 
+type PendingTask = {
+    id: number;
+    data: any;
+    task: Task;
+};
+
 type WorkerObj = {
     worker: Worker,
     id: number
@@ -21,6 +27,7 @@ export default class WorkerPool {
     private available: WorkerObj[] = [];
     private tasks = new Map<number, Task>();
     private jobId = 1; // counting number of jobs a single worker has performed from e debugging point of view, not related to any relations of jobs or anything (much easier to spot integers in dev logs)
+    private taskQueue: PendingTask[] = [];
 
     constructor(size: number) {
         for (let i = 0; i < size; i++) {
@@ -46,6 +53,8 @@ export default class WorkerPool {
 
                 // mark worker available again
                 this.available.push(workerObj);
+                
+                this.pickNextJob(); // process any pending task immediately when a new worker has been just releaves and is available
             });
 
             worker.on("error", (err) => {
@@ -63,7 +72,13 @@ export default class WorkerPool {
 
             const workerData = this.available.pop();
             if (!workerData) {
-                return reject(new Error("No workers available"));
+                console.log(`*** [WORKER] WorkerPool.run (no workers available) QUEUEING jobID: ${id} ...`);
+                this.taskQueue.push({
+                    id,
+                    data,
+                    task: { resolve, reject },
+                });
+                return;
             }
 
             console.log(`*** [WORKER] WorkerPool.run jobID: ${id} ...`);
@@ -73,6 +88,31 @@ export default class WorkerPool {
 
             workerData.worker.postMessage(job);
         });
+    }
+    
+    pickNextJob() {
+        if (!this.taskQueue.length) {
+            //console.log(`*** [WORKER] WorkerPool.pickNextJob no pending tasks ...`);
+            return;
+        }
+        
+        const workerData = this.available.pop();
+        if (!workerData) {
+            console.log(`*** [WORKER] WorkerPool.pickNextJob (no workers still available) ...`);
+            return;
+        }
+        
+        const pendingTask = this.taskQueue.shift(); // take first element
+        if (!pendingTask) return;
+        
+        const { id, data, task } = pendingTask;
+        
+        console.log(`*** [WORKER] WorkerPool.run RESUMING QUEUED jobID: ${id} ...`);
+        this.tasks.set(workerData.id, task);
+        
+        const job: Job = { id, data };
+
+        workerData.worker.postMessage(job);
     }
 
     async close() {

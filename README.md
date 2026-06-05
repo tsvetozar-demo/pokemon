@@ -27,11 +27,11 @@ For this particular case, probably, this worker functionality is pointless. The 
 Worker pool size is static.
 
 # Docker
-NOTE: sudo may be required for docker.
+NOTE: `sudo` may be required for `docker` commands.
 
 There's a script `build:docker` in package.json
-On command line you can run it manually:
-Build
+
+On command line you can run it manually to build (you may change the name `pokemon-server` to a different one if you wish):
 ```
 docker build -t pokemon-server .
 ```
@@ -41,7 +41,7 @@ Running docker:
 docker run pokemon-server
 ```
 
-Attach to the docker to inspect it through the shell and manually test and run commands:
+Attach to the docker image to inspect it through the shell and manually test and run commands:
 ```
 docker run -it pokemon-server sh
 ```
